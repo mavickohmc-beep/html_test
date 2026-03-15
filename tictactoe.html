@@ -1,698 +1,413 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chrome Hearts ✝ Tic Tac Toe</title>
-  <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chrome Hearts ✝ Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Cinzel',serif;background:#0a0a0a;color:#c0c0c0;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,.012) 2px,rgba(255,255,255,.012) 4px),repeating-linear-gradient(90deg,transparent,transparent 2px,rgba(255,255,255,.012) 2px,rgba(255,255,255,.012) 4px);pointer-events:none;z-index:0;}
+.bg-cross{position:fixed;font-size:6rem;color:rgba(192,192,192,.04);pointer-events:none;user-select:none;z-index:0;}
+.screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;position:relative;z-index:1;padding:20px;}
+.screen.active{display:flex;}
 
-    body {
-      font-family: 'Cinzel', serif;
-      background: #0a0a0a;
-      color: #c0c0c0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      overflow: hidden;
-    }
+/* ── SHARED HEADER ── */
+.ch-header{display:flex;align-items:center;gap:14px;margin-bottom:4px;}
+.ch-cross{font-size:2rem;color:#c0c0c0;text-shadow:0 0 8px rgba(192,192,192,.5);}
+.ch-title{font-family:'Cinzel Decorative',serif;font-size:1.7rem;color:#d4d4d4;letter-spacing:4px;text-transform:uppercase;text-shadow:0 0 10px rgba(192,192,192,.4),0 2px 4px rgba(0,0,0,.8);}
+.ch-sub{font-size:.7rem;letter-spacing:6px;color:#555;text-transform:uppercase;margin-bottom:24px;}
+.divider{display:flex;align-items:center;gap:10px;width:100%;max-width:420px;margin-bottom:20px;}
+.divider-line{flex:1;height:1px;background:linear-gradient(to right,transparent,#444,transparent);}
+.divider-icon{color:#666;font-size:.9rem;}
+.status-bar{font-size:.9rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:18px;color:#aaa;min-height:1.4em;text-align:center;}
 
-    /* Subtle leather texture overlay */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 4px),
-        repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 4px);
-      pointer-events: none;
-      z-index: 0;
-    }
+/* ── BUTTONS ── */
+.btn{font-family:'Cinzel',serif;padding:10px 28px;border:1px solid #444;background:linear-gradient(145deg,#1a1a1a,#111);color:#bbb;font-size:.78rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.6);}
+.btn:hover{border-color:#888;color:#e8e8e8;box-shadow:0 0 12px rgba(192,192,192,.15);background:linear-gradient(145deg,#222,#161616);}
+.btn:active{transform:scale(.97);}
+.btn-row{display:flex;gap:12px;margin-top:22px;flex-wrap:wrap;justify-content:center;}
 
-    /* Floating cross decorations */
-    .bg-cross {
-      position: fixed;
-      font-size: 6rem;
-      color: rgba(192,192,192,0.04);
-      pointer-events: none;
-      user-select: none;
-      z-index: 0;
-    }
+/* ── BACK BUTTON ── */
+.back-btn{position:fixed;top:18px;left:18px;z-index:100;font-family:'Cinzel',serif;padding:7px 18px;border:1px solid #333;background:#0d0d0d;color:#666;font-size:.7rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+.back-btn:hover{border-color:#888;color:#ccc;}
 
-    .wrapper {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+/* ── SCORE STRIP ── */
+.score-strip{display:flex;gap:0;font-size:.75rem;letter-spacing:2px;text-transform:uppercase;border:1px solid #222;overflow:hidden;margin-top:18px;}
+.sb{padding:8px 20px;text-align:center;border-right:1px solid #222;background:linear-gradient(145deg,#111,#0d0d0d);}
+.sb:last-child{border-right:none;}
+.sb-label{color:#444;font-size:.6rem;letter-spacing:3px;display:block;margin-bottom:3px;}
+.sb-val{font-size:1.1rem;font-weight:700;color:#bbb;}
 
-    /* Logo area */
-    .logo-row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 4px;
-    }
+/* ══════════════════════════════
+   MENU
+══════════════════════════════ */
+#menu .game-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;max-width:680px;width:100%;margin-top:10px;}
+.game-card{background:linear-gradient(145deg,#131313,#0d0d0d);border:1px solid #222;padding:28px 16px;text-align:center;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;}
+.game-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent 60%);pointer-events:none;}
+.game-card:hover{border-color:#666;box-shadow:0 0 18px rgba(192,192,192,.1);transform:translateY(-3px);}
+.game-card .gc-icon{font-size:2.4rem;margin-bottom:10px;display:block;}
+.game-card .gc-name{font-size:.75rem;letter-spacing:3px;text-transform:uppercase;color:#aaa;}
 
-    .ch-cross {
-      font-size: 2rem;
-      color: #c0c0c0;
-      text-shadow: 0 0 8px rgba(192,192,192,0.5);
-    }
+/* ══════════════════════════════
+   TIC TAC TOE
+══════════════════════════════ */
+#ttt-board{display:grid;grid-template-columns:repeat(3,110px);grid-template-rows:repeat(3,110px);gap:6px;background:#111;padding:6px;border:1px solid #222;box-shadow:0 0 30px rgba(0,0,0,.9);}
+.ttt-cell{background:linear-gradient(145deg,#141414,#0d0d0d);border:1px solid #222;display:flex;align-items:center;justify-content:center;font-size:2.8rem;cursor:pointer;transition:all .2s;user-select:none;}
+.ttt-cell:hover:not(.taken){background:linear-gradient(145deg,#1e1e1e,#161616);border-color:#555;transform:scale(1.04);}
+.ttt-cell.taken{cursor:default;}
+.ttt-cell.cx{color:#e8e8e8;text-shadow:0 0 12px rgba(220,220,220,.7);}
+.ttt-cell.co{color:#777;text-shadow:0 0 10px rgba(150,150,150,.5);}
+.ttt-cell.win{border-color:#888;box-shadow:inset 0 0 18px rgba(192,192,192,.12),0 0 14px rgba(192,192,192,.2);animation:silverPulse .6s ease;}
 
-    h1 {
-      font-family: 'Cinzel Decorative', serif;
-      font-size: 1.8rem;
-      color: #d4d4d4;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      text-shadow:
-        0 0 10px rgba(192,192,192,0.4),
-        0 2px 4px rgba(0,0,0,0.8);
-    }
+/* ══════════════════════════════
+   CONNECT FOUR
+══════════════════════════════ */
+#c4-board{display:grid;grid-template-columns:repeat(7,62px);grid-template-rows:repeat(6,62px);gap:5px;background:#0e0e0e;padding:8px;border:1px solid #222;box-shadow:0 0 30px rgba(0,0,0,.9);}
+.c4-cell{border-radius:50%;background:#111;border:1px solid #1e1e1e;width:62px;height:62px;display:flex;align-items:center;justify-content:center;transition:all .2s;position:relative;}
+.c4-col-btn{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;padding:0;}
+.c4-col-hover{width:62px;height:22px;display:flex;align-items:center;justify-content:center;color:#333;font-size:1rem;transition:color .2s;}
+.c4-col-btn:hover .c4-col-hover{color:#aaa;}
+#c4-cols{display:grid;grid-template-columns:repeat(7,62px);gap:5px;margin-bottom:3px;padding:0 8px;}
+.c4-cell.p1{background:radial-gradient(circle at 35% 35%,#e0e0e0,#888);box-shadow:0 0 10px rgba(200,200,200,.3);}
+.c4-cell.p2{background:radial-gradient(circle at 35% 35%,#444,#1a1a1a);box-shadow:0 0 8px rgba(0,0,0,.5);}
+.c4-cell.win-c4{box-shadow:0 0 16px rgba(192,192,192,.5);animation:silverPulse .6s ease;}
 
-    .subtitle {
-      font-family: 'Cinzel', serif;
-      font-size: 0.75rem;
-      letter-spacing: 6px;
-      color: #666;
-      text-transform: uppercase;
-      margin-bottom: 28px;
-    }
+/* ══════════════════════════════
+   ROCK PAPER SCISSORS
+══════════════════════════════ */
+#rps-arena{display:flex;gap:40px;align-items:center;justify-content:center;flex-wrap:wrap;margin:20px 0;}
+.rps-side{text-align:center;min-width:120px;}
+.rps-side .rps-label{font-size:.65rem;letter-spacing:4px;text-transform:uppercase;color:#555;margin-bottom:10px;}
+.rps-display{font-size:5rem;min-height:90px;display:flex;align-items:center;justify-content:center;transition:transform .2s;}
+.rps-vs{font-family:'Cinzel Decorative',serif;font-size:1.2rem;color:#333;letter-spacing:3px;}
+.rps-choices{display:flex;gap:12px;margin-top:10px;}
+.rps-btn{width:90px;height:90px;border:1px solid #333;background:linear-gradient(145deg,#141414,#0d0d0d);font-size:2.4rem;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+.rps-btn span.rlabel{font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:2px;color:#555;text-transform:uppercase;}
+.rps-btn:hover{border-color:#888;transform:scale(1.08);box-shadow:0 0 12px rgba(192,192,192,.15);}
+.rps-btn:active{transform:scale(.97);}
 
-    /* Ornamental divider */
-    .divider {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 18px;
-      width: 380px;
-    }
-    .divider-line {
-      flex: 1;
-      height: 1px;
-      background: linear-gradient(to right, transparent, #555, transparent);
-    }
-    .divider-icon { color: #888; font-size: 0.9rem; }
+/* ══════════════════════════════
+   BLACKJACK
+══════════════════════════════ */
+#bj-screen{width:100%;max-width:560px;}
+.bj-zone{min-height:110px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px;background:linear-gradient(145deg,#0e0e0e,#090909);border:1px solid #1e1e1e;margin-bottom:12px;border-radius:2px;}
+.bj-zone-label{font-size:.6rem;letter-spacing:4px;color:#444;text-transform:uppercase;width:100%;margin-bottom:4px;}
+.card{width:58px;height:84px;background:linear-gradient(145deg,#e8e8e8,#c8c8c8);border-radius:4px;display:flex;flex-direction:column;justify-content:space-between;padding:5px;font-size:.85rem;font-weight:700;box-shadow:2px 2px 8px rgba(0,0,0,.7);border:1px solid #aaa;}
+.card.red{color:#1a1a1a;}
+.card.black{color:#1a1a1a;}
+.card.hidden{background:linear-gradient(135deg,#1a1a1a 25%,#111 25%,#111 50%,#1a1a1a 50%,#1a1a1a 75%,#111 75%);background-size:8px 8px;border:1px solid #333;}
+.card .c-suit{font-size:1.5rem;text-align:center;}
+.card .c-bot{transform:rotate(180deg);font-size:.85rem;}
+.bj-total{font-size:.75rem;letter-spacing:3px;color:#666;margin-top:4px;text-transform:uppercase;}
 
-    #status {
-      font-family: 'Cinzel', serif;
-      font-size: 1rem;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      margin-bottom: 22px;
-      color: #aaa;
-      min-height: 1.5em;
-      text-shadow: 0 0 8px rgba(192,192,192,0.3);
-    }
+/* ══════════════════════════════
+   MEMORY MATCH
+══════════════════════════════ */
+#mem-board{display:grid;grid-template-columns:repeat(4,90px);grid-template-rows:repeat(4,90px);gap:8px;}
+.mem-card{background:linear-gradient(145deg,#141414,#0d0d0d);border:1px solid #222;display:flex;align-items:center;justify-content:center;font-size:2rem;cursor:pointer;transition:all .3s;user-select:none;position:relative;transform-style:preserve-3d;}
+.mem-card.flipped,.mem-card.matched{background:linear-gradient(145deg,#1a1a1a,#111);border-color:#555;}
+.mem-card.matched{border-color:#666;box-shadow:0 0 10px rgba(192,192,192,.15);cursor:default;}
+.mem-card:not(.flipped):not(.matched):hover{border-color:#444;transform:scale(1.05);}
+.mem-turn{font-size:.75rem;letter-spacing:4px;text-transform:uppercase;color:#666;margin-top:14px;}
 
-    /* Board */
-    #board {
-      display: grid;
-      grid-template-columns: repeat(3, 115px);
-      grid-template-rows: repeat(3, 115px);
-      gap: 6px;
-      background: #111;
-      padding: 6px;
-      border: 1px solid #2a2a2a;
-      box-shadow:
-        0 0 30px rgba(0,0,0,0.9),
-        inset 0 0 20px rgba(0,0,0,0.5);
-      position: relative;
-    }
-
-    /* Cross-stitch grid lines */
-    #board::before, #board::after {
-      content: '';
-      position: absolute;
-      background: #2a2a2a;
-      pointer-events: none;
-    }
-
-    .cell {
-      background: linear-gradient(145deg, #141414, #0d0d0d);
-      border: 1px solid #222;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 3rem;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s, border-color 0.2s, box-shadow 0.2s;
-      user-select: none;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .cell::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 60%);
-      pointer-events: none;
-    }
-
-    .cell:hover:not(.taken) {
-      background: linear-gradient(145deg, #1e1e1e, #161616);
-      border-color: #555;
-      box-shadow: inset 0 0 12px rgba(192,192,192,0.08), 0 0 8px rgba(192,192,192,0.1);
-      transform: scale(1.04);
-    }
-
-    .cell.taken { cursor: default; }
-
-    /* Player X — silver cross */
-    .cell.x {
-      color: #e8e8e8;
-      text-shadow: 0 0 12px rgba(220,220,220,0.7), 0 0 25px rgba(192,192,192,0.3);
-    }
-
-    /* NPC O — dark chrome ring */
-    .cell.o {
-      color: #888;
-      text-shadow: 0 0 10px rgba(150,150,150,0.5);
-    }
-
-    .cell.win {
-      background: linear-gradient(145deg, #1a1a1a, #131313);
-      border-color: #888;
-      box-shadow: inset 0 0 18px rgba(192,192,192,0.12), 0 0 14px rgba(192,192,192,0.2);
-      animation: silverPulse 0.6s ease;
-    }
-
-    @keyframes silverPulse {
-      0%, 100% { transform: scale(1); }
-      40% { transform: scale(1.1); box-shadow: 0 0 20px rgba(192,192,192,0.4); }
-    }
-
-    @keyframes placeAnim {
-      0% { transform: scale(0.3) rotate(-15deg); opacity: 0; }
-      70% { transform: scale(1.15) rotate(3deg); }
-      100% { transform: scale(1) rotate(0deg); opacity: 1; }
-    }
-
-    .cell.place-anim { animation: placeAnim 0.25s cubic-bezier(.3,1.4,.6,1) forwards; }
-
-    /* Controls */
-    #controls {
-      margin-top: 24px;
-      display: flex;
-      gap: 12px;
-    }
-
-    button {
-      font-family: 'Cinzel', serif;
-      padding: 10px 28px;
-      border: 1px solid #444;
-      background: linear-gradient(145deg, #1a1a1a, #111);
-      color: #bbb;
-      font-size: 0.8rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
-    }
-
-    button:hover {
-      border-color: #888;
-      color: #e8e8e8;
-      box-shadow: 0 0 12px rgba(192,192,192,0.15), 0 2px 8px rgba(0,0,0,0.6);
-      background: linear-gradient(145deg, #222, #161616);
-    }
-
-    button:active { transform: scale(0.97); }
-
-    #restartBtn { border-color: #555; }
-
-    /* Score */
-    #score {
-      margin-top: 22px;
-      display: flex;
-      gap: 0;
-      font-size: 0.8rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      border: 1px solid #222;
-      overflow: hidden;
-    }
-
-    .score-block {
-      padding: 10px 24px;
-      text-align: center;
-      border-right: 1px solid #222;
-      background: linear-gradient(145deg, #111, #0d0d0d);
-    }
-
-    .score-block:last-child { border-right: none; }
-
-    .score-label { color: #555; font-size: 0.65rem; letter-spacing: 3px; display: block; margin-bottom: 4px; }
-    .score-val { font-size: 1.2rem; font-weight: 700; }
-    .score-x .score-val { color: #ddd; }
-    .score-draw .score-val { color: #666; }
-    .score-o .score-val { color: #888; }
-
-    /* Footer mark */
-    .footer-mark {
-      margin-top: 28px;
-      font-family: 'Cinzel', serif;
-      font-size: 0.6rem;
-      letter-spacing: 5px;
-      color: #333;
-      text-transform: uppercase;
-    }
-  </style>
+/* ══════════════════════════════
+   SHARED ANIMATIONS
+══════════════════════════════ */
+@keyframes silverPulse{0%,100%{transform:scale(1);}40%{transform:scale(1.1);box-shadow:0 0 20px rgba(192,192,192,.4);}}
+@keyframes placeAnim{0%{transform:scale(.3) rotate(-15deg);opacity:0;}70%{transform:scale(1.15) rotate(3deg);}100%{transform:scale(1) rotate(0);opacity:1;}}
+@keyframes dropIn{0%{transform:translateY(-200px);opacity:0;}80%{transform:translateY(4px);}100%{transform:translateY(0);opacity:1;}}
+.place-anim{animation:placeAnim .25s cubic-bezier(.3,1.4,.6,1) forwards;}
+.drop-anim{animation:dropIn .25s ease forwards;}
+</style>
 </head>
 <body>
 
-  <!-- Background floating crosses -->
-  <div class="bg-cross" style="top:5%; left:3%">✝</div>
-  <div class="bg-cross" style="top:15%; right:5%">✝</div>
-  <div class="bg-cross" style="bottom:10%; left:8%">✝</div>
-  <div class="bg-cross" style="bottom:20%; right:4%">✝</div>
-  <div class="bg-cross" style="top:45%; left:1%; font-size:3rem">⚜</div>
-  <div class="bg-cross" style="top:55%; right:1%; font-size:3rem">⚜</div>
+<!-- BG CROSSES -->
+<div class="bg-cross" style="top:5%;left:3%">✝</div>
+<div class="bg-cross" style="top:15%;right:5%">✝</div>
+<div class="bg-cross" style="bottom:10%;left:8%">✝</div>
+<div class="bg-cross" style="bottom:20%;right:4%">✝</div>
+<div class="bg-cross" style="top:45%;left:1%;font-size:3rem">⚜</div>
+<div class="bg-cross" style="top:55%;right:1%;font-size:3rem">⚜</div>
 
-  <div class="wrapper">
-    <div class="logo-row">
-      <span class="ch-cross">✝</span>
-      <h1>Chrome Hearts</h1>
-      <span class="ch-cross">✝</span>
-    </div>
-    <div class="subtitle">Tic &nbsp;✝&nbsp; Tac &nbsp;✝&nbsp; Toe</div>
-
-    <div class="divider">
-      <div class="divider-line"></div>
-      <span class="divider-icon">⚜</span>
-      <div class="divider-line"></div>
-    </div>
-
-    <div id="status">Your Turn &nbsp;✝</div>
-    <div id="board"></div>
-
-    <div id="controls">
-      <button id="restartBtn">✝ &nbsp;Restart</button>
-      <button id="modeBtn">NPC : Hard</button>
-    </div>
-
-    <div id="score">
-      <div class="score-block score-x">
-        <span class="score-label">You ✝</span>
-        <span class="score-val" id="scoreX">0</span>
-      </div>
-      <div class="score-block score-draw">
-        <span class="score-label">Draw</span>
-        <span class="score-val" id="scoreDraw">0</span>
-      </div>
-      <div class="score-block score-o">
-        <span class="score-label">NPC ☽</span>
-        <span class="score-val" id="scoreO">0</span>
-      </div>
-    </div>
-
-    <div class="footer-mark">✝ &nbsp; Hollywood, CA &nbsp; ✝</div>
+<!-- ══ MENU ══ -->
+<div id="menu" class="screen active">
+  <div class="ch-header">
+    <span class="ch-cross">✝</span>
+    <span class="ch-title">Chrome Hearts</span>
+    <span class="ch-cross">✝</span>
   </div>
+  <div class="ch-sub">Select Your Game</div>
+  <div class="divider"><div class="divider-line"></div><span class="divider-icon">⚜</span><div class="divider-line"></div></div>
+  <div class="game-grid">
+    <div class="game-card" onclick="launch('ttt')"><span class="gc-icon">✝</span><span class="gc-name">Tic Tac Toe</span></div>
+    <div class="game-card" onclick="launch('c4')"><span class="gc-icon">◈</span><span class="gc-name">Connect Four</span></div>
+    <div class="game-card" onclick="launch('rps')"><span class="gc-icon">☽</span><span class="gc-name">Rock Paper Scissors</span></div>
+    <div class="game-card" onclick="launch('bj')"><span class="gc-icon">♠</span><span class="gc-name">Blackjack</span></div>
+    <div class="game-card" onclick="launch('mem')"><span class="gc-icon">⚜</span><span class="gc-name">Memory Match</span></div>
+  </div>
+  <div style="margin-top:28px;font-size:.6rem;letter-spacing:5px;color:#2a2a2a;text-transform:uppercase;">✝ &nbsp; Hollywood, CA &nbsp; ✝</div>
+</div>
 
-  <script>
-    // ─── Audio Engine ────────────────────────────────────────────────────────
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    let ctx = null;
+<!-- ══ TIC TAC TOE ══ -->
+<div id="ttt" class="screen">
+  <button class="back-btn" onclick="goMenu()">✝ Menu</button>
+  <div class="ch-header"><span class="ch-cross">✝</span><span class="ch-title">Tic Tac Toe</span><span class="ch-cross">✝</span></div>
+  <div class="ch-sub">You ✝ vs NPC ◯</div>
+  <div class="divider"><div class="divider-line"></div><span class="divider-icon">⚜</span><div class="divider-line"></div></div>
+  <div id="ttt-status" class="status-bar">Your Turn ✝</div>
+  <div id="ttt-board"></div>
+  <div class="btn-row">
+    <button class="btn" onclick="tttInit()">✝ &nbsp;Restart</button>
+    <button class="btn" id="ttt-diff-btn" onclick="tttCycleDiff()">NPC : Hard</button>
+  </div>
+  <div class="score-strip">
+    <div class="sb"><span class="sb-label">You ✝</span><span class="sb-val" id="ttt-sx">0</span></div>
+    <div class="sb"><span class="sb-label">Draw</span><span class="sb-val" id="ttt-sd">0</span></div>
+    <div class="sb"><span class="sb-label">NPC ◯</span><span class="sb-val" id="ttt-so">0</span></div>
+  </div>
+</div>
 
-    function getCtx() {
-      if (!ctx) ctx = new AudioCtx();
-      if (ctx.state === 'suspended') ctx.resume();
-      return ctx;
-    }
+<!-- ══ CONNECT FOUR ══ -->
+<div id="c4" class="screen">
+  <button class="back-btn" onclick="goMenu()">✝ Menu</button>
+  <div class="ch-header"><span class="ch-cross">✝</span><span class="ch-title">Connect Four</span><span class="ch-cross">✝</span></div>
+  <div class="ch-sub">Silver vs Dark ◈</div>
+  <div class="divider"><div class="divider-line"></div><span class="divider-icon">⚜</span><div class="divider-line"></div></div>
+  <div id="c4-status" class="status-bar">Your Turn</div>
+  <div id="c4-cols"></div>
+  <div id="c4-board"></div>
+  <div class="btn-row">
+    <button class="btn" onclick="c4Init()">✝ &nbsp;Restart</button>
+    <button class="btn" id="c4-diff-btn" onclick="c4CycleDiff()">NPC : Hard</button>
+  </div>
+  <div class="score-strip">
+    <div class="sb"><span class="sb-label">You</span><span class="sb-val" id="c4-sx">0</span></div>
+    <div class="sb"><span class="sb-label">Draw</span><span class="sb-val" id="c4-sd">0</span></div>
+    <div class="sb"><span class="sb-label">NPC</span><span class="sb-val" id="c4-so">0</span></div>
+  </div>
+</div>
 
-    // Metallic clank — player places a piece
-    function soundPlace() {
-      const ac = getCtx();
-      const t = ac.currentTime;
+<!-- ══ ROCK PAPER SCISSORS ══ -->
+<div id="rps" class="screen">
+  <button class="back-btn" onclick="goMenu()">✝ Menu</button>
+  <div class="ch-header"><span class="ch-cross">✝</span><span class="ch-title">RPS</span><span class="ch-cross">✝</span></div>
+  <div class="ch-sub">Best of 7</div>
+  <div class="divider"><div class="divider-line"></div><span class="divider-icon">⚜</span><div class="divider-line"></div></div>
+  <div id="rps-status" class="status-bar">Choose your weapon</div>
+  <div id="rps-arena">
+    <div class="rps-side"><div class="rps-label">You</div><div class="rps-display" id="rps-player">✝</div></div>
+    <div class="rps-vs">VS</div>
+    <div class="rps-side"><div class="rps-label">NPC</div><div class="rps-display" id="rps-npc">☽</div></div>
+  </div>
+  <div class="rps-choices">
+    <button class="rps-btn" onclick="rpsPlay('rock')">🪨<span class="rlabel">Rock</span></button>
+    <button class="rps-btn" onclick="rpsPlay('paper')">📜<span class="rlabel">Paper</span></button>
+    <button class="rps-btn" onclick="rpsPlay('scissors')">✂️<span class="rlabel">Scissors</span></button>
+  </div>
+  <div class="btn-row"><button class="btn" onclick="rpsInit()">✝ &nbsp;Restart</button></div>
+  <div class="score-strip">
+    <div class="sb"><span class="sb-label">You</span><span class="sb-val" id="rps-sx">0</span></div>
+    <div class="sb"><span class="sb-label">Draw</span><span class="sb-val" id="rps-sd">0</span></div>
+    <div class="sb"><span class="sb-label">NPC</span><span class="sb-val" id="rps-so">0</span></div>
+  </div>
+</div>
 
-      // Noise burst
-      const buf = ac.createBuffer(1, ac.sampleRate * 0.15, ac.sampleRate);
-      const data = buf.getChannelData(0);
-      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
-      const noise = ac.createBufferSource();
-      noise.buffer = buf;
+<!-- ══ BLACKJACK ══ -->
+<div id="bj" class="screen">
+  <button class="back-btn" onclick="goMenu()">✝ Menu</button>
+  <div class="ch-header"><span class="ch-cross">✝</span><span class="ch-title">Blackjack</span><span class="ch-cross">✝</span></div>
+  <div class="ch-sub">Beat the Dealer</div>
+  <div class="divider"><div class="divider-line"></div><span class="divider-icon">⚜</span><div class="divider-line"></div></div>
+  <div id="bj-status" class="status-bar">Place your bet</div>
+  <div id="bj-screen">
+    <div class="bj-zone" id="bj-dealer-zone"><span class="bj-zone-label">Dealer</span></div>
+    <div class="bj-zone" id="bj-player-zone"><span class="bj-zone-label">You</span></div>
+    <div class="bj-total" id="bj-totals"></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn" id="bj-hit" onclick="bjHit()">Hit</button>
+    <button class="btn" id="bj-stand" onclick="bjStand()">Stand</button>
+    <button class="btn" id="bj-deal" onclick="bjDeal()" style="display:none">✝ &nbsp;Deal</button>
+  </div>
+  <div class="score-strip">
+    <div class="sb"><span class="sb-label">Wins</span><span class="sb-val" id="bj-sx">0</span></div>
+    <div class="sb"><span class="sb-label">Draws</span><span class="sb-val" id="bj-sd">0</span></div>
+    <div class="sb"><span class="sb-label">Losses</span><span class="sb-val" id="bj-so">0</span></div>
+  </div>
+</div>
 
-      const noiseGain = ac.createGain();
-      noiseGain.gain.setValueAtTime(0.18, t);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+<!-- ══ MEMORY MATCH ══ -->
+<div id="mem" class="screen">
+  <button class="back-btn" onclick="goMenu()">✝ Menu</button>
+  <div class="ch-header"><span class="ch-cross">✝</span><span class="ch-title">Memory Match</span><span class="ch-cross">✝</span></div>
+  <div class="ch-sub">You vs NPC</div>
+  <div class="divider"><div class="divider-line"></div><span class="divider-icon">⚜</span><div class="divider-line"></div></div>
+  <div id="mem-status" class="status-bar">Your Turn</div>
+  <div id="mem-board"></div>
+  <div id="mem-turn" class="mem-turn"></div>
+  <div class="btn-row">
+    <button class="btn" onclick="memInit()">✝ &nbsp;Restart</button>
+    <button class="btn" id="mem-diff-btn" onclick="memCycleDiff()">NPC : Medium</button>
+  </div>
+  <div class="score-strip">
+    <div class="sb"><span class="sb-label">Your Pairs</span><span class="sb-val" id="mem-sp">0</span></div>
+    <div class="sb"><span class="sb-label">NPC Pairs</span><span class="sb-val" id="mem-np">0</span></div>
+  </div>
+</div>
 
-      const bandpass = ac.createBiquadFilter();
-      bandpass.type = 'bandpass';
-      bandpass.frequency.value = 2800;
-      bandpass.Q.value = 3;
+<script>
+// ═══════════════════════════════════════
+// AUDIO ENGINE
+// ═══════════════════════════════════════
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let actx = null;
+function ac() { if(!actx) actx=new AudioCtx(); if(actx.state==='suspended') actx.resume(); return actx; }
+function distCurve(a){const n=256,c=new Float32Array(n);for(let i=0;i<n;i++){const x=(i*2)/n-1;c[i]=((Math.PI+a)*x)/(Math.PI+a*Math.abs(x));}return c;}
+function impulse(a,dur,dec){const l=a.sampleRate*dur,b=a.createBuffer(2,l,a.sampleRate);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<l;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/l,dec);}return b;}
+function sndPlace(){const a=ac(),t=a.currentTime;const o=a.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(420,t);o.frequency.exponentialRampToValueAtTime(180,t+.18);const g=a.createGain();g.gain.setValueAtTime(.12,t);g.gain.exponentialRampToValueAtTime(.001,t+.22);const d=a.createWaveShaper();d.curve=distCurve(80);o.connect(d);d.connect(g);g.connect(a.destination);o.start(t);o.stop(t+.25);}
+function sndNPC(){const a=ac(),t=a.currentTime;const o=a.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(280,t);o.frequency.exponentialRampToValueAtTime(90,t+.25);const g=a.createGain();g.gain.setValueAtTime(.15,t);g.gain.exponentialRampToValueAtTime(.001,t+.28);const d=a.createWaveShaper();d.curve=distCurve(120);o.connect(d);d.connect(g);g.connect(a.destination);o.start(t);o.stop(t+.3);}
+function sndWin(){const a=ac();[523,659,784,1046].forEach((f,i)=>{const t=a.currentTime+i*.18;const o=a.createOscillator();o.type='sine';o.frequency.value=f;const g=a.createGain();g.gain.setValueAtTime(.22,t);g.gain.exponentialRampToValueAtTime(.001,t+1.2);const rv=a.createConvolver();rv.buffer=impulse(a,1.5,3);o.connect(g);g.connect(rv);rv.connect(a.destination);g.connect(a.destination);o.start(t);o.stop(t+1.2);});}
+function sndLose(){const a=ac();[392,330,262,196].forEach((f,i)=>{const t=a.currentTime+i*.22;const o=a.createOscillator();o.type='sine';o.frequency.value=f;const g=a.createGain();g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+1.4);const rv=a.createConvolver();rv.buffer=impulse(a,2,4);o.connect(g);g.connect(rv);rv.connect(a.destination);g.connect(a.destination);o.start(t);o.stop(t+1.5);});}
+function sndDraw(){const a=ac(),t=a.currentTime;const o=a.createOscillator();o.type='sine';o.frequency.setValueAtTime(330,t);o.frequency.exponentialRampToValueAtTime(280,t+1);const g=a.createGain();g.gain.setValueAtTime(.18,t);g.gain.exponentialRampToValueAtTime(.001,t+1.8);const rv=a.createConvolver();rv.buffer=impulse(a,2,3);o.connect(g);g.connect(rv);rv.connect(a.destination);g.connect(a.destination);o.start(t);o.stop(t+2);}
+function sndHover(){const a=ac(),t=a.currentTime;const b=a.createBuffer(1,a.sampleRate*.05,a.sampleRate);const d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);const n=a.createBufferSource();n.buffer=b;const bp=a.createBiquadFilter();bp.type='bandpass';bp.frequency.value=5000;bp.Q.value=8;const g=a.createGain();g.gain.setValueAtTime(.04,t);g.gain.exponentialRampToValueAtTime(.001,t+.04);n.connect(bp);bp.connect(g);g.connect(a.destination);n.start(t);n.stop(t+.05);}
+function sndBtn(){const a=ac(),t=a.currentTime;const o=a.createOscillator();o.type='sine';o.frequency.setValueAtTime(120,t);o.frequency.exponentialRampToValueAtTime(60,t+.08);const g=a.createGain();g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.1);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+.12);}
+function sndCard(){const a=ac(),t=a.currentTime;const b=a.createBuffer(1,a.sampleRate*.06,a.sampleRate);const d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);const n=a.createBufferSource();n.buffer=b;const hp=a.createBiquadFilter();hp.type='highpass';hp.frequency.value=3000;const g=a.createGain();g.gain.setValueAtTime(.12,t);n.connect(hp);hp.connect(g);g.connect(a.destination);n.start(t);n.stop(t+.06);}
+function sndFlip(){const a=ac(),t=a.currentTime;const o=a.createOscillator();o.type='sine';o.frequency.setValueAtTime(800,t);o.frequency.exponentialRampToValueAtTime(400,t+.08);const g=a.createGain();g.gain.setValueAtTime(.08,t);g.gain.exponentialRampToValueAtTime(.001,t+.1);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+.1);}
+function sndMatch(){const a=ac();[600,900].forEach((f,i)=>{const t=a.currentTime+i*.1;const o=a.createOscillator();o.type='sine';o.frequency.value=f;const g=a.createGain();g.gain.setValueAtTime(.15,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+.3);});}
 
-      noise.connect(bandpass);
-      bandpass.connect(noiseGain);
-      noiseGain.connect(ac.destination);
-      noise.start(t);
-      noise.stop(t + 0.15);
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function goMenu(){sndBtn();showScreen('menu');}
+function launch(id){sndBtn();showScreen(id);if(id==='ttt')tttInit();else if(id==='c4')c4Init();else if(id==='rps')rpsInit();else if(id==='bj')bjInit();else if(id==='mem')memInit();}
 
-      // Metallic ring tone
-      const osc = ac.createOscillator();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(420, t);
-      osc.frequency.exponentialRampToValueAtTime(180, t + 0.18);
+// ═══════════════════════════════════════
+// TIC TAC TOE
+// ═══════════════════════════════════════
+const TTT_WINS=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+let tttBoard,tttOver,tttDiffIdx=2;
+const tttDiffs=['Easy','Medium','Hard'];
+let tttScores={X:0,O:0,D:0};
+function tttInit(){tttBoard=Array(9).fill('');tttOver=false;document.getElementById('ttt-status').textContent='Your Turn ✝';tttRender();}
+function tttRender(){const b=document.getElementById('ttt-board');b.innerHTML='';tttBoard.forEach((v,i)=>{const c=document.createElement('div');c.className='ttt-cell'+(v?' taken c'+v.toLowerCase():'');c.textContent=v==='X'?'✝':v==='O'?'◯':'';c.addEventListener('click',()=>tttMove(i));c.addEventListener('mouseenter',()=>{if(!tttOver&&!tttBoard[i])sndHover();});b.appendChild(c);});}
+function tttMove(i){if(tttOver||tttBoard[i])return;tttBoard[i]='X';sndPlace();tttRender();animCell(document.getElementById('ttt-board').children[i]);const r=tttCheck(tttBoard);if(r)return tttEnd(r);document.getElementById('ttt-status').textContent='NPC Thinking…';setTimeout(tttNPC,450);}
+function tttNPC(){if(tttOver)return;let m;const d=tttDiffs[tttDiffIdx];if(d==='Hard')m=tttMM(tttBoard,'O').index;else if(d==='Medium')m=Math.random()<.6?tttMM(tttBoard,'O').index:tttRand();else m=tttRand();tttBoard[m]='O';sndNPC();tttRender();animCell(document.getElementById('ttt-board').children[m]);const r=tttCheck(tttBoard);if(r)return tttEnd(r);document.getElementById('ttt-status').textContent='Your Turn ✝';}
+function tttRand(){const e=tttBoard.map((v,i)=>v?null:i).filter(v=>v!==null);return e[Math.floor(Math.random()*e.length)];}
+function tttCheck(b){for(const[a,c,d]of TTT_WINS)if(b[a]&&b[a]===b[c]&&b[a]===b[d])return{winner:b[a],combo:[a,c,d]};if(b.every(v=>v))return{winner:'draw'};return null;}
+function tttMM(b,p,depth=0){const r=tttCheck(b);if(r){if(r.winner==='O')return{score:10-depth};if(r.winner==='X')return{score:depth-10};return{score:0};}const e=b.map((v,i)=>v?null:i).filter(v=>v!==null);const moves=e.map(i=>{b[i]=p;const s=tttMM(b,p==='O'?'X':'O',depth+1).score;b[i]='';return{index:i,score:s};});return moves.reduce((best,m)=>p==='O'?(m.score>best.score?m:best):(m.score<best.score?m:best));}
+function tttEnd({winner,combo}){tttOver=true;if(winner==='draw'){document.getElementById('ttt-status').textContent='— Draw —';sndDraw();tttScores.D++;document.getElementById('ttt-sd').textContent=tttScores.D;}else if(winner==='X'){document.getElementById('ttt-status').innerHTML='✝ &nbsp; Victory';sndWin();tttScores.X++;document.getElementById('ttt-sx').textContent=tttScores.X;tttHighlight(combo);}else{document.getElementById('ttt-status').innerHTML='☽ &nbsp; Defeated';sndLose();tttScores.O++;document.getElementById('ttt-so').textContent=tttScores.O;tttHighlight(combo);}}
+function tttHighlight(combo){const cells=document.getElementById('ttt-board').querySelectorAll('.ttt-cell');combo.forEach(i=>cells[i].classList.add('win'));}
+function tttCycleDiff(){sndBtn();tttDiffIdx=(tttDiffIdx+1)%tttDiffs.length;document.getElementById('ttt-diff-btn').textContent='NPC : '+tttDiffs[tttDiffIdx];tttInit();}
+function animCell(el){if(!el)return;el.classList.remove('place-anim');void el.offsetWidth;el.classList.add('place-anim');}
 
-      const oscGain = ac.createGain();
-      oscGain.gain.setValueAtTime(0.12, t);
-      oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+// ═══════════════════════════════════════
+// CONNECT FOUR
+// ═══════════════════════════════════════
+const ROWS=6,COLS=7;
+let c4Board,c4Over,c4DiffIdx=2;
+const c4Diffs=['Easy','Medium','Hard'];
+let c4Scores={X:0,O:0,D:0};
+function c4Init(){c4Board=Array(ROWS).fill(null).map(()=>Array(COLS).fill(0));c4Over=false;document.getElementById('c4-status').textContent='Your Turn';c4Render();}
+function c4Render(){
+  const colDiv=document.getElementById('c4-cols');colDiv.innerHTML='';
+  for(let c=0;c<COLS;c++){const btn=document.createElement('button');btn.className='c4-col-btn';const arr=document.createElement('div');arr.className='c4-col-hover';arr.textContent='▾';btn.appendChild(arr);btn.addEventListener('click',()=>c4Drop(c));btn.addEventListener('mouseenter',sndHover);colDiv.appendChild(btn);}
+  const bd=document.getElementById('c4-board');bd.innerHTML='';
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const cell=document.createElement('div');cell.className='c4-cell'+(c4Board[r][c]===1?' p1':c4Board[r][c]===2?' p2':'');bd.appendChild(cell);}
+}
+function c4Drop(col){if(c4Over)return;const row=c4DropRow(c4Board,col);if(row===-1)return;c4Board[row][col]=1;sndPlace();c4Render();const wc=c4CheckWin(c4Board,1);if(wc){c4End(1,wc);return;}if(c4Full(c4Board)){c4End(0);return;}document.getElementById('c4-status').textContent='NPC Thinking…';setTimeout(c4NPC,450);}
+function c4DropRow(b,col){for(let r=ROWS-1;r>=0;r--)if(b[r][col]===0)return r;return -1;}
+function c4NPC(){if(c4Over)return;const d=c4Diffs[c4DiffIdx];let col;if(d==='Hard')col=c4BestMove(c4Board,2);else if(d==='Medium')col=Math.random()<.65?c4BestMove(c4Board,2):c4RandCol(c4Board);else col=c4RandCol(c4Board);c4Board[c4DropRow(c4Board,col)][col]=2;sndNPC();c4Render();const wc=c4CheckWin(c4Board,2);if(wc){c4End(2,wc);return;}if(c4Full(c4Board)){c4End(0);return;}document.getElementById('c4-status').textContent='Your Turn';}
+function c4RandCol(b){const open=[];for(let c=0;c<COLS;c++)if(c4DropRow(b,c)!==-1)open.push(c);return open[Math.floor(Math.random()*open.length)];}
+function c4BestMove(b,p){const opp=p===1?2:1;// win
+for(let c=0;c<COLS;c++){const r=c4DropRow(b,c);if(r===-1)continue;b[r][c]=p;if(c4CheckWin(b,p)){b[r][c]=0;return c;}b[r][c]=0;}
+// block
+for(let c=0;c<COLS;c++){const r=c4DropRow(b,c);if(r===-1)continue;b[r][c]=opp;if(c4CheckWin(b,opp)){b[r][c]=0;return c;}b[r][c]=0;}
+// center prefer
+const pref=[3,2,4,1,5,0,6];for(const c of pref){if(c4DropRow(b,c)!==-1)return c;}return c4RandCol(b);}
+function c4CheckWin(b,p){
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){if(b[r][c]!==p)continue;
+    if(c+3<COLS&&b[r][c+1]===p&&b[r][c+2]===p&&b[r][c+3]===p)return[[r,c],[r,c+1],[r,c+2],[r,c+3]];
+    if(r+3<ROWS&&b[r+1][c]===p&&b[r+2][c]===p&&b[r+3][c]===p)return[[r,c],[r+1,c],[r+2,c],[r+3,c]];
+    if(r+3<ROWS&&c+3<COLS&&b[r+1][c+1]===p&&b[r+2][c+2]===p&&b[r+3][c+3]===p)return[[r,c],[r+1,c+1],[r+2,c+2],[r+3,c+3]];
+    if(r+3<ROWS&&c-3>=0&&b[r+1][c-1]===p&&b[r+2][c-2]===p&&b[r+3][c-3]===p)return[[r,c],[r+1,c-1],[r+2,c-2],[r+3,c-3]];}
+  return null;}
+function c4Full(b){return b[0].every(v=>v!==0);}
+function c4End(winner,combo){c4Over=true;if(winner===0){document.getElementById('c4-status').textContent='— Draw —';sndDraw();c4Scores.D++;document.getElementById('c4-sd').textContent=c4Scores.D;}else if(winner===1){document.getElementById('c4-status').innerHTML='✝ &nbsp; Victory';sndWin();c4Scores.X++;document.getElementById('c4-sx').textContent=c4Scores.X;c4Highlight(combo);}else{document.getElementById('c4-status').innerHTML='☽ &nbsp; Defeated';sndLose();c4Scores.O++;document.getElementById('c4-so').textContent=c4Scores.O;c4Highlight(combo);}}
+function c4Highlight(combo){const cells=document.getElementById('c4-board').querySelectorAll('.c4-cell');combo.forEach(([r,c])=>cells[r*COLS+c].classList.add('win-c4'));}
+function c4CycleDiff(){sndBtn();c4DiffIdx=(c4DiffIdx+1)%c4Diffs.length;document.getElementById('c4-diff-btn').textContent='NPC : '+c4Diffs[c4DiffIdx];c4Init();}
 
-      const distortion = ac.createWaveShaper();
-      distortion.curve = makeDistortionCurve(80);
+// ═══════════════════════════════════════
+// ROCK PAPER SCISSORS
+// ═══════════════════════════════════════
+const RPS_ICONS={rock:'🪨',paper:'📜',scissors:'✂️'};
+const RPS_CHOICES=['rock','paper','scissors'];
+const RPS_BEATS={rock:'scissors',scissors:'paper',paper:'rock'};
+let rpsScores={p:0,n:0,d:0},rpsHistory=[],rpsOver=false;
+function rpsInit(){rpsScores={p:0,n:0,d:0};rpsHistory=[];rpsOver=false;document.getElementById('rps-status').textContent='Choose your weapon';document.getElementById('rps-player').textContent='✝';document.getElementById('rps-npc').textContent='☽';document.getElementById('rps-sx').textContent=0;document.getElementById('rps-so').textContent=0;document.getElementById('rps-sd').textContent=0;}
+function rpsNPCChoice(){// Pattern prediction: look at last 3 player moves
+  if(rpsHistory.length<3||Math.random()<.25)return RPS_CHOICES[Math.floor(Math.random()*3)];
+  const last=rpsHistory.slice(-3);const counts={};RPS_CHOICES.forEach(c=>counts[c]=0);last.forEach(c=>counts[c]++);const predicted=Object.keys(counts).reduce((a,b)=>counts[a]>=counts[b]?a:b);return Object.keys(RPS_BEATS).find(k=>RPS_BEATS[k]===predicted)||RPS_CHOICES[Math.floor(Math.random()*3)];}
+function rpsPlay(choice){if(rpsOver)return;sndPlace();const npc=rpsNPCChoice();rpsHistory.push(choice);document.getElementById('rps-player').textContent=RPS_ICONS[choice];document.getElementById('rps-npc').textContent=RPS_ICONS[npc];let res;if(choice===npc)res='draw';else if(RPS_BEATS[choice]===npc)res='win';else res='lose';
+  if(res==='win'){rpsScores.p++;sndWin();document.getElementById('rps-status').textContent='✝ You Win this Round!';}
+  else if(res==='lose'){rpsScores.n++;sndLose();document.getElementById('rps-status').textContent='☽ NPC Wins this Round';}
+  else{rpsScores.d++;sndDraw();document.getElementById('rps-status').textContent='— Draw —';}
+  document.getElementById('rps-sx').textContent=rpsScores.p;document.getElementById('rps-so').textContent=rpsScores.n;document.getElementById('rps-sd').textContent=rpsScores.d;
+  if(rpsScores.p===4){document.getElementById('rps-status').innerHTML='✝ &nbsp; You Win the Match!';rpsOver=true;}
+  else if(rpsScores.n===4){document.getElementById('rps-status').innerHTML='☽ &nbsp; NPC Wins the Match';rpsOver=true;}}
 
-      osc.connect(distortion);
-      distortion.connect(oscGain);
-      oscGain.connect(ac.destination);
-      osc.start(t);
-      osc.stop(t + 0.25);
-    }
+// ═══════════════════════════════════════
+// BLACKJACK
+// ═══════════════════════════════════════
+const BJ_SUITS=['♠','♣','♥','♦'];
+const BJ_VALS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+let bjDeck,bjDealer,bjPlayer,bjScores={w:0,l:0,d:0},bjActive=false;
+function bjInit(){bjScores={w:0,l:0,d:0};document.getElementById('bj-sx').textContent=0;document.getElementById('bj-so').textContent=0;document.getElementById('bj-sd').textContent=0;bjSetupDeal();}
+function bjSetupDeal(){bjActive=false;document.getElementById('bj-status').textContent='Press Deal to start';document.getElementById('bj-hit').style.display='none';document.getElementById('bj-stand').style.display='none';document.getElementById('bj-deal').style.display='';document.getElementById('bj-dealer-zone').innerHTML='<span class="bj-zone-label">Dealer</span>';document.getElementById('bj-player-zone').innerHTML='<span class="bj-zone-label">You</span>';document.getElementById('bj-totals').textContent='';}
+function bjBuildDeck(){const d=[];for(const s of BJ_SUITS)for(const v of BJ_VALS)d.push({s,v});for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}return d;}
+function bjVal(card){if(['J','Q','K'].includes(card.v))return 10;if(card.v==='A')return 11;return parseInt(card.v);}
+function bjTotal(hand){let t=hand.reduce((s,c)=>s+bjVal(c),0),aces=hand.filter(c=>c.v==='A').length;while(t>21&&aces-->0)t-=10;return t;}
+function bjRender(hideDealer){
+  const dz=document.getElementById('bj-dealer-zone');dz.innerHTML='<span class="bj-zone-label">Dealer</span>';
+  bjDealer.forEach((c,i)=>{const isRed=['♥','♦'].includes(c.s);const el=document.createElement('div');el.className='card'+(isRed?' red':' black');if(i===1&&hideDealer){el.className='card hidden';}else{el.innerHTML=`<span>${c.v}${c.s}</span><span class="c-suit">${c.s}</span><span class="c-bot">${c.v}${c.s}</span>`;}dz.appendChild(el);});
+  const pz=document.getElementById('bj-player-zone');pz.innerHTML='<span class="bj-zone-label">You</span>';
+  bjPlayer.forEach(c=>{const isRed=['♥','♦'].includes(c.s);const el=document.createElement('div');el.className='card'+(isRed?' red':' black');el.innerHTML=`<span>${c.v}${c.s}</span><span class="c-suit">${c.s}</span><span class="c-bot">${c.v}${c.s}</span>`;pz.appendChild(el);});
+  const pt=bjTotal(bjPlayer);document.getElementById('bj-totals').textContent=hideDealer?`Your total: ${pt}`:`Dealer: ${bjTotal(bjDealer)} | You: ${pt}`;}
+function bjDeal(){sndBtn();bjDeck=bjBuildDeck();bjDealer=[bjDeck.pop(),bjDeck.pop()];bjPlayer=[bjDeck.pop(),bjDeck.pop()];bjActive=true;document.getElementById('bj-deal').style.display='none';document.getElementById('bj-hit').style.display='';document.getElementById('bj-stand').style.display='';bjRender(true);sndCard();const pt=bjTotal(bjPlayer);if(pt===21){bjReveal('Blackjack! ✝');}else document.getElementById('bj-status').textContent='Hit or Stand?';}
+function bjHit(){if(!bjActive)return;sndCard();bjPlayer.push(bjDeck.pop());bjRender(true);const t=bjTotal(bjPlayer);if(t>21){bjReveal('Bust! ☽ Dealer wins');}}
+function bjStand(){if(!bjActive)return;bjActive=false;bjRender(false);sndNPC();// dealer plays
+  const play=()=>{if(bjTotal(bjDealer)<17){setTimeout(()=>{bjDealer.push(bjDeck.pop());sndCard();bjRender(false);play();},500);}else{const dt=bjTotal(bjDealer),pt=bjTotal(bjPlayer);if(dt>21||pt>dt)bjEndRound('win');else if(dt===pt)bjEndRound('draw');else bjEndRound('lose');}};play();}
+function bjReveal(msg){bjActive=false;bjRender(false);bjEndRound(msg.includes('Blackjack')?'win':msg.includes('Bust')?'lose':'draw');}
+function bjEndRound(res){if(res==='win'){document.getElementById('bj-status').innerHTML='✝ &nbsp; You Win!';sndWin();bjScores.w++;document.getElementById('bj-sx').textContent=bjScores.w;}else if(res==='lose'){document.getElementById('bj-status').innerHTML='☽ &nbsp; Dealer Wins';sndLose();bjScores.l++;document.getElementById('bj-so').textContent=bjScores.l;}else{document.getElementById('bj-status').textContent='— Push —';sndDraw();bjScores.d++;document.getElementById('bj-sd').textContent=bjScores.d;}document.getElementById('bj-hit').style.display='none';document.getElementById('bj-stand').style.display='none';document.getElementById('bj-deal').style.display='';}
 
-    // NPC heavy clank — darker, lower
-    function soundNPC() {
-      const ac = getCtx();
-      const t = ac.currentTime;
-
-      const osc = ac.createOscillator();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(280, t);
-      osc.frequency.exponentialRampToValueAtTime(90, t + 0.25);
-
-      const gainNode = ac.createGain();
-      gainNode.gain.setValueAtTime(0.15, t);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-
-      const dist = ac.createWaveShaper();
-      dist.curve = makeDistortionCurve(120);
-
-      osc.connect(dist);
-      dist.connect(gainNode);
-      gainNode.connect(ac.destination);
-      osc.start(t);
-      osc.stop(t + 0.3);
-
-      // Low thud
-      const buf = ac.createBuffer(1, ac.sampleRate * 0.1, ac.sampleRate);
-      const data = buf.getChannelData(0);
-      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
-      const noise = ac.createBufferSource();
-      noise.buffer = buf;
-      const ng = ac.createGain();
-      ng.gain.setValueAtTime(0.08, t);
-      ng.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-      const lp = ac.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.frequency.value = 400;
-      noise.connect(lp); lp.connect(ng); ng.connect(ac.destination);
-      noise.start(t); noise.stop(t + 0.1);
-    }
-
-    // Victory — gothic bell toll sequence
-    function soundWin() {
-      const ac = getCtx();
-      const notes = [523, 659, 784, 1046];
-      notes.forEach((freq, i) => {
-        const t = ac.currentTime + i * 0.18;
-        const osc = ac.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-
-        const osc2 = ac.createOscillator();
-        osc2.type = 'triangle';
-        osc2.frequency.value = freq * 2.76; // inharmonic partial for bell
-
-        const g = ac.createGain();
-        g.gain.setValueAtTime(0.22, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
-
-        const g2 = ac.createGain();
-        g2.gain.setValueAtTime(0.06, t);
-        g2.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-
-        const reverb = ac.createConvolver();
-        reverb.buffer = makeImpulse(ac, 1.5, 3);
-
-        osc.connect(g); osc2.connect(g2);
-        g.connect(reverb); g2.connect(reverb);
-        reverb.connect(ac.destination);
-        g.connect(ac.destination);
-
-        osc.start(t); osc.stop(t + 1.2);
-        osc2.start(t); osc2.stop(t + 0.6);
-      });
-    }
-
-    // Defeat — descending dark toll
-    function soundLose() {
-      const ac = getCtx();
-      const notes = [392, 330, 262, 196];
-      notes.forEach((freq, i) => {
-        const t = ac.currentTime + i * 0.22;
-        const osc = ac.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-
-        const g = ac.createGain();
-        g.gain.setValueAtTime(0.2, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 1.4);
-
-        const reverb = ac.createConvolver();
-        reverb.buffer = makeImpulse(ac, 2, 4);
-        osc.connect(g); g.connect(reverb); reverb.connect(ac.destination);
-        g.connect(ac.destination);
-        osc.start(t); osc.stop(t + 1.5);
-      });
-    }
-
-    // Draw — hollow single toll
-    function soundDraw() {
-      const ac = getCtx();
-      const t = ac.currentTime;
-      const osc = ac.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(330, t);
-      osc.frequency.exponentialRampToValueAtTime(280, t + 1.0);
-      const g = ac.createGain();
-      g.gain.setValueAtTime(0.18, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 1.8);
-      const reverb = ac.createConvolver();
-      reverb.buffer = makeImpulse(ac, 2, 3);
-      osc.connect(g); g.connect(reverb); reverb.connect(ac.destination);
-      g.connect(ac.destination);
-      osc.start(t); osc.stop(t + 2);
-    }
-
-    // Hover tick — subtle chain clink
-    function soundHover() {
-      const ac = getCtx();
-      const t = ac.currentTime;
-      const buf = ac.createBuffer(1, ac.sampleRate * 0.05, ac.sampleRate);
-      const data = buf.getChannelData(0);
-      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
-      const noise = ac.createBufferSource();
-      noise.buffer = buf;
-      const bp = ac.createBiquadFilter();
-      bp.type = 'bandpass';
-      bp.frequency.value = 5000;
-      bp.Q.value = 8;
-      const g = ac.createGain();
-      g.gain.setValueAtTime(0.04, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-      noise.connect(bp); bp.connect(g); g.connect(ac.destination);
-      noise.start(t); noise.stop(t + 0.05);
-    }
-
-    // Button click — leather thump
-    function soundButton() {
-      const ac = getCtx();
-      const t = ac.currentTime;
-      const osc = ac.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(120, t);
-      osc.frequency.exponentialRampToValueAtTime(60, t + 0.08);
-      const g = ac.createGain();
-      g.gain.setValueAtTime(0.25, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-      osc.connect(g); g.connect(ac.destination);
-      osc.start(t); osc.stop(t + 0.12);
-    }
-
-    function makeDistortionCurve(amount) {
-      const n = 256, curve = new Float32Array(n);
-      for (let i = 0; i < n; i++) {
-        const x = (i * 2) / n - 1;
-        curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x));
-      }
-      return curve;
-    }
-
-    function makeImpulse(ac, duration, decay) {
-      const len = ac.sampleRate * duration;
-      const buf = ac.createBuffer(2, len, ac.sampleRate);
-      for (let c = 0; c < 2; c++) {
-        const d = buf.getChannelData(c);
-        for (let i = 0; i < len; i++)
-          d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
-      }
-      return buf;
-    }
-
-    // ─── Game Logic ──────────────────────────────────────────────────────────
-    const WINS = [
-      [0,1,2],[3,4,5],[6,7,8],
-      [0,3,6],[1,4,7],[2,5,8],
-      [0,4,8],[2,4,6]
-    ];
-
-    let board, gameOver, difficulty;
-    let scores = { X: 0, O: 0, D: 0 };
-    const difficulties = ['Easy', 'Medium', 'Hard'];
-    let diffIndex = 2;
-
-    const boardEl = document.getElementById('board');
-    const statusEl = document.getElementById('status');
-    const modeBtn = document.getElementById('modeBtn');
-
-    // X shown as cross symbol, O as ring
-    const symbols = { X: '✝', O: '◯' };
-
-    function init() {
-      board = Array(9).fill('');
-      gameOver = false;
-      difficulty = difficulties[diffIndex];
-      statusEl.textContent = 'Your Turn \u00a0✝';
-      renderBoard();
-    }
-
-    function renderBoard() {
-      boardEl.innerHTML = '';
-      board.forEach((val, i) => {
-        const cell = document.createElement('div');
-        cell.className = 'cell' + (val ? ' taken ' + val.toLowerCase() : '');
-        if (val) cell.textContent = symbols[val];
-        cell.addEventListener('click', () => playerMove(i));
-        cell.addEventListener('mouseenter', () => {
-          if (!gameOver && !board[i]) soundHover();
-        });
-        boardEl.appendChild(cell);
-      });
-    }
-
-    function highlightWin(combo) {
-      const cells = boardEl.querySelectorAll('.cell');
-      combo.forEach(i => cells[i].classList.add('win'));
-    }
-
-    function checkWinner(b) {
-      for (const [a, c, d] of WINS) {
-        if (b[a] && b[a] === b[c] && b[a] === b[d]) return { winner: b[a], combo: [a, c, d] };
-      }
-      if (b.every(v => v)) return { winner: 'draw' };
-      return null;
-    }
-
-    function playerMove(i) {
-      if (gameOver || board[i]) return;
-      board[i] = 'X';
-      soundPlace();
-      renderBoard();
-      animateCell(i);
-      const result = checkWinner(board);
-      if (result) return endGame(result);
-      statusEl.textContent = 'NPC Thinking\u00a0…';
-      setTimeout(npcMove, 500);
-    }
-
-    function npcMove() {
-      if (gameOver) return;
-      let move;
-      if (difficulty === 'Hard') {
-        move = minimax(board, 'O').index;
-      } else if (difficulty === 'Medium') {
-        move = Math.random() < 0.6 ? minimax(board, 'O').index : randomMove();
-      } else {
-        move = randomMove();
-      }
-      board[move] = 'O';
-      soundNPC();
-      renderBoard();
-      animateCell(move);
-      const result = checkWinner(board);
-      if (result) return endGame(result);
-      statusEl.textContent = 'Your Turn \u00a0✝';
-    }
-
-    function animateCell(i) {
-      const cells = boardEl.querySelectorAll('.cell');
-      cells[i].classList.add('place-anim');
-    }
-
-    function randomMove() {
-      const empty = board.map((v, i) => v ? null : i).filter(v => v !== null);
-      return empty[Math.floor(Math.random() * empty.length)];
-    }
-
-    function minimax(b, player, depth = 0) {
-      const result = checkWinner(b);
-      if (result) {
-        if (result.winner === 'O') return { score: 10 - depth };
-        if (result.winner === 'X') return { score: depth - 10 };
-        return { score: 0 };
-      }
-      const empty = b.map((v, i) => v ? null : i).filter(v => v !== null);
-      const moves = empty.map(i => {
-        b[i] = player;
-        const score = minimax(b, player === 'O' ? 'X' : 'O', depth + 1).score;
-        b[i] = '';
-        return { index: i, score };
-      });
-      return moves.reduce((best, m) =>
-        player === 'O' ? (m.score > best.score ? m : best) : (m.score < best.score ? m : best)
-      );
-    }
-
-    function endGame({ winner, combo }) {
-      gameOver = true;
-      if (winner === 'draw') {
-        statusEl.textContent = '— Draw —';
-        soundDraw();
-        scores.D++;
-        document.getElementById('scoreDraw').textContent = scores.D;
-      } else if (winner === 'X') {
-        statusEl.textContent = '✝ &nbsp;Victory';
-        statusEl.innerHTML = '✝ &nbsp; Victory';
-        soundWin();
-        scores.X++;
-        document.getElementById('scoreX').textContent = scores.X;
-        highlightWin(combo);
-      } else {
-        statusEl.innerHTML = '☽ &nbsp; Defeated';
-        soundLose();
-        scores.O++;
-        document.getElementById('scoreO').textContent = scores.O;
-        highlightWin(combo);
-      }
-    }
-
-    document.getElementById('restartBtn').addEventListener('click', () => {
-      soundButton();
-      init();
-    });
-
-    modeBtn.addEventListener('click', () => {
-      soundButton();
-      diffIndex = (diffIndex + 1) % difficulties.length;
-      modeBtn.textContent = 'NPC : ' + difficulties[diffIndex];
-      init();
-    });
-
-    init();
-  </script>
+// ═══════════════════════════════════════
+// MEMORY MATCH
+// ═══════════════════════════════════════
+const MEM_SYMBOLS=['✝','⚜','☽','♠','◈','✦','⛧','☠'];
+let memCards,memFlipped,memLocked,memTurn,memPairs,memNPCPairs,memMemory,memDiffIdx=1;
+const memDiffs=['Easy','Medium','Hard'];
+let memScores={p:0,n:0};
+function memInit(){
+  const syms=[...MEM_SYMBOLS,...MEM_SYMBOLS];for(let i=syms.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[syms[i],syms[j]]=[syms[j],syms[i]];}
+  memCards=syms.map((s,i)=>({id:i,sym:s,matched:false,flipped:false}));memFlipped=[];memLocked=false;memTurn='player';memPairs=0;memNPCPairs=0;memMemory={};
+  document.getElementById('mem-status').textContent='Your Turn';document.getElementById('mem-turn').textContent='You: 0 pairs | NPC: 0 pairs';document.getElementById('mem-sp').textContent=0;document.getElementById('mem-np').textContent=0;memRender();}
+function memRender(){const b=document.getElementById('mem-board');b.innerHTML='';memCards.forEach((card,i)=>{const el=document.createElement('div');el.className='mem-card'+(card.flipped||card.matched?' flipped':'')+(card.matched?' matched':'');el.textContent=(card.flipped||card.matched)?card.sym:'';el.addEventListener('click',()=>memClick(i));b.appendChild(el);});}
+function memClick(i){if(memLocked||memTurn!=='player'||memCards[i].matched||memCards[i].flipped||memFlipped.length>=2)return;sndFlip();memCards[i].flipped=true;memFlipped.push(i);// NPC learns this card
+  memMemory[i]=memCards[i].sym;memRender();if(memFlipped.length===2)setTimeout(memCheck,700);}
+function memCheck(){const[a,b]=memFlipped;if(memCards[a].sym===memCards[b].sym){sndMatch();memCards[a].matched=true;memCards[b].matched=true;memFlipped=[];if(memTurn==='player'){memPairs++;document.getElementById('mem-sp').textContent=memPairs;}else{memNPCPairs++;document.getElementById('mem-np').textContent=memNPCPairs;}document.getElementById('mem-turn').textContent=`You: ${memPairs} pairs | NPC: ${memNPCPairs} pairs`;if(memCards.every(c=>c.matched))return memEndGame();// same player goes again
+    if(memTurn==='npc')setTimeout(memNPCTurn,800);}else{memCards[a].flipped=false;memCards[b].flipped=false;memFlipped=[];memRender();if(memTurn==='player'){memTurn='npc';document.getElementById('mem-status').textContent='NPC Turn…';setTimeout(memNPCTurn,700);}else{memTurn='player';document.getElementById('mem-status').textContent='Your Turn';}}memRender();}
+function memNPCTurn(){if(memTurn!=='npc')return;memLocked=true;const diff=memDiffs[memDiffIdx];const unmatched=memCards.map((c,i)=>c.matched?null:i).filter(v=>v!==null);
+  let pick1,pick2=null;// Try to find a known pair
+  const known=unmatched.filter(i=>memMemory[i]!==undefined);const symMap={};known.forEach(i=>{const s=memMemory[i];if(!symMap[s])symMap[s]=[];symMap[s].push(i);});const knownPair=Object.values(symMap).find(arr=>arr.length>=2);
+  if(knownPair&&(diff==='Hard'||(diff==='Medium'&&Math.random()<.5))){pick1=knownPair[0];pick2=knownPair[1];}else{pick1=unmatched[Math.floor(Math.random()*unmatched.length)];const rem=unmatched.filter(i=>i!==pick1);// try to match from memory
+    const target=memMemory[pick1];const memMatch=rem.find(i=>memMemory[i]===target);pick2=memMatch||(diff==='Hard'&&rem.length>0?rem[Math.floor(Math.random()*rem.length)]:rem[Math.floor(Math.random()*rem.length)]);}
+  memCards[pick1].flipped=true;memMemory[pick1]=memCards[pick1].sym;memFlipped=[pick1];memRender();
+  setTimeout(()=>{if(!memCards[pick2]){memLocked=false;return;}memCards[pick2].flipped=true;memMemory[pick2]=memCards[pick2].sym;memFlipped.push(pick2);memRender();memLocked=false;setTimeout(memCheck,700);},700);}
+function memEndGame(){const p=memPairs,n=memNPCPairs;if(p>n){document.getElementById('mem-status').innerHTML='✝ &nbsp; You Win!';sndWin();}else if(n>p){document.getElementById('mem-status').innerHTML='☽ &nbsp; NPC Wins';sndLose();}else{document.getElementById('mem-status').textContent='— Draw —';sndDraw();}}
+function memCycleDiff(){sndBtn();memDiffIdx=(memDiffIdx+1)%memDiffs.length;document.getElementById('mem-diff-btn').textContent='NPC : '+memDiffs[memDiffIdx];memInit();}
+</script>
 </body>
 </html>

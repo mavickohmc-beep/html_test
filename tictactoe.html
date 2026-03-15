@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chrome Hearts ✝ Tic Tac Toe</title>
+  <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Cinzel', serif;
+      background: #0a0a0a;
+      color: #c0c0c0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Subtle leather texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 4px),
+        repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 4px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Floating cross decorations */
+    .bg-cross {
+      position: fixed;
+      font-size: 6rem;
+      color: rgba(192,192,192,0.04);
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Logo area */
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 4px;
+    }
+
+    .ch-cross {
+      font-size: 2rem;
+      color: #c0c0c0;
+      text-shadow: 0 0 8px rgba(192,192,192,0.5);
+    }
+
+    h1 {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: 1.8rem;
+      color: #d4d4d4;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 10px rgba(192,192,192,0.4),
+        0 2px 4px rgba(0,0,0,0.8);
+    }
+
+    .subtitle {
+      font-family: 'Cinzel', serif;
+      font-size: 0.75rem;
+      letter-spacing: 6px;
+      color: #666;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    /* Ornamental divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      width: 380px;
+    }
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, transparent, #555, transparent);
+    }
+    .divider-icon { color: #888; font-size: 0.9rem; }
+
+    #status {
+      font-family: 'Cinzel', serif;
+      font-size: 1rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 22px;
+      color: #aaa;
+      min-height: 1.5em;
+      text-shadow: 0 0 8px rgba(192,192,192,0.3);
+    }
+
+    /* Board */
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 115px);
+      grid-template-rows: repeat(3, 115px);
+      gap: 6px;
+      background: #111;
+      padding: 6px;
+      border: 1px solid #2a2a2a;
+      box-shadow:
+        0 0 30px rgba(0,0,0,0.9),
+        inset 0 0 20px rgba(0,0,0,0.5);
+      position: relative;
+    }
+
+    /* Cross-stitch grid lines */
+    #board::before, #board::after {
+      content: '';
+      position: absolute;
+      background: #2a2a2a;
+      pointer-events: none;
+    }
+
+    .cell {
+      background: linear-gradient(145deg, #141414, #0d0d0d);
+      border: 1px solid #222;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s, border-color 0.2s, box-shadow 0.2s;
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cell::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .cell:hover:not(.taken) {
+      background: linear-gradient(145deg, #1e1e1e, #161616);
+      border-color: #555;
+      box-shadow: inset 0 0 12px rgba(192,192,192,0.08), 0 0 8px rgba(192,192,192,0.1);
+      transform: scale(1.04);
+    }
+
+    .cell.taken { cursor: default; }
+
+    /* Player X — silver cross */
+    .cell.x {
+      color: #e8e8e8;
+      text-shadow: 0 0 12px rgba(220,220,220,0.7), 0 0 25px rgba(192,192,192,0.3);
+    }
+
+    /* NPC O — dark chrome ring */
+    .cell.o {
+      color: #888;
+      text-shadow: 0 0 10px rgba(150,150,150,0.5);
+    }
+
+    .cell.win {
+      background: linear-gradient(145deg, #1a1a1a, #131313);
+      border-color: #888;
+      box-shadow: inset 0 0 18px rgba(192,192,192,0.12), 0 0 14px rgba(192,192,192,0.2);
+      animation: silverPulse 0.6s ease;
+    }
+
+    @keyframes silverPulse {
+      0%, 100% { transform: scale(1); }
+      40% { transform: scale(1.1); box-shadow: 0 0 20px rgba(192,192,192,0.4); }
+    }
+
+    @keyframes placeAnim {
+      0% { transform: scale(0.3) rotate(-15deg); opacity: 0; }
+      70% { transform: scale(1.15) rotate(3deg); }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    .cell.place-anim { animation: placeAnim 0.25s cubic-bezier(.3,1.4,.6,1) forwards; }
+
+    /* Controls */
+    #controls {
+      margin-top: 24px;
+      display: flex;
+      gap: 12px;
+    }
+
+    button {
+      font-family: 'Cinzel', serif;
+      padding: 10px 28px;
+      border: 1px solid #444;
+      background: linear-gradient(145deg, #1a1a1a, #111);
+      color: #bbb;
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    }
+
+    button:hover {
+      border-color: #888;
+      color: #e8e8e8;
+      box-shadow: 0 0 12px rgba(192,192,192,0.15), 0 2px 8px rgba(0,0,0,0.6);
+      background: linear-gradient(145deg, #222, #161616);
+    }
+
+    button:active { transform: scale(0.97); }
+
+    #restartBtn { border-color: #555; }
+
+    /* Score */
+    #score {
+      margin-top: 22px;
+      display: flex;
+      gap: 0;
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      border: 1px solid #222;
+      overflow: hidden;
+    }
+
+    .score-block {
+      padding: 10px 24px;
+      text-align: center;
+      border-right: 1px solid #222;
+      background: linear-gradient(145deg, #111, #0d0d0d);
+    }
+
+    .score-block:last-child { border-right: none; }
+
+    .score-label { color: #555; font-size: 0.65rem; letter-spacing: 3px; display: block; margin-bottom: 4px; }
+    .score-val { font-size: 1.2rem; font-weight: 700; }
+    .score-x .score-val { color: #ddd; }
+    .score-draw .score-val { color: #666; }
+    .score-o .score-val { color: #888; }
+
+    /* Footer mark */
+    .footer-mark {
+      margin-top: 28px;
+      font-family: 'Cinzel', serif;
+      font-size: 0.6rem;
+      letter-spacing: 5px;
+      color: #333;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background floating crosses -->
+  <div class="bg-cross" style="top:5%; left:3%">✝</div>
+  <div class="bg-cross" style="top:15%; right:5%">✝</div>
+  <div class="bg-cross" style="bottom:10%; left:8%">✝</div>
+  <div class="bg-cross" style="bottom:20%; right:4%">✝</div>
+  <div class="bg-cross" style="top:45%; left:1%; font-size:3rem">⚜</div>
+  <div class="bg-cross" style="top:55%; right:1%; font-size:3rem">⚜</div>
+
+  <div class="wrapper">
+    <div class="logo-row">
+      <span class="ch-cross">✝</span>
+      <h1>Chrome Hearts</h1>
+      <span class="ch-cross">✝</span>
+    </div>
+    <div class="subtitle">Tic &nbsp;✝&nbsp; Tac &nbsp;✝&nbsp; Toe</div>
+
+    <div class="divider">
+      <div class="divider-line"></div>
+      <span class="divider-icon">⚜</span>
+      <div class="divider-line"></div>
+    </div>
+
+    <div id="status">Your Turn &nbsp;✝</div>
+    <div id="board"></div>
+
+    <div id="controls">
+      <button id="restartBtn">✝ &nbsp;Restart</button>
+      <button id="modeBtn">NPC : Hard</button>
+    </div>
+
+    <div id="score">
+      <div class="score-block score-x">
+        <span class="score-label">You ✝</span>
+        <span class="score-val" id="scoreX">0</span>
+      </div>
+      <div class="score-block score-draw">
+        <span class="score-label">Draw</span>
+        <span class="score-val" id="scoreDraw">0</span>
+      </div>
+      <div class="score-block score-o">
+        <span class="score-label">NPC ☽</span>
+        <span class="score-val" id="scoreO">0</span>
+      </div>
+    </div>
+
+    <div class="footer-mark">✝ &nbsp; Hollywood, CA &nbsp; ✝</div>
+  </div>
+
+  <script>
+    // ─── Audio Engine ────────────────────────────────────────────────────────
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let ctx = null;
+
+    function getCtx() {
+      if (!ctx) ctx = new AudioCtx();
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    }
+
+    // Metallic clank — player places a piece
+    function soundPlace() {
+      const ac = getCtx();
+      const t = ac.currentTime;
+
+      // Noise burst
+      const buf = ac.createBuffer(1, ac.sampleRate * 0.15, ac.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
+      const noise = ac.createBufferSource();
+      noise.buffer = buf;
+
+      const noiseGain = ac.createGain();
+      noiseGain.gain.setValueAtTime(0.18, t);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+      const bandpass = ac.createBiquadFilter();
+      bandpass.type = 'bandpass';
+      bandpass.frequency.value = 2800;
+      bandpass.Q.value = 3;
+
+      noise.connect(bandpass);
+      bandpass.connect(noiseGain);
+      noiseGain.connect(ac.destination);
+      noise.start(t);
+      noise.stop(t + 0.15);
+
+      // Metallic ring tone
+      const osc = ac.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(420, t);
+      osc.frequency.exponentialRampToValueAtTime(180, t + 0.18);
+
+      const oscGain = ac.createGain();
+      oscGain.gain.setValueAtTime(0.12, t);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+
+      const distortion = ac.createWaveShaper();
+      distortion.curve = makeDistortionCurve(80);
+
+      osc.connect(distortion);
+      distortion.connect(oscGain);
+      oscGain.connect(ac.destination);
+      osc.start(t);
+      osc.stop(t + 0.25);
+    }
+
+    // NPC heavy clank — darker, lower
+    function soundNPC() {
+      const ac = getCtx();
+      const t = ac.currentTime;
+
+      const osc = ac.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(280, t);
+      osc.frequency.exponentialRampToValueAtTime(90, t + 0.25);
+
+      const gainNode = ac.createGain();
+      gainNode.gain.setValueAtTime(0.15, t);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+
+      const dist = ac.createWaveShaper();
+      dist.curve = makeDistortionCurve(120);
+
+      osc.connect(dist);
+      dist.connect(gainNode);
+      gainNode.connect(ac.destination);
+      osc.start(t);
+      osc.stop(t + 0.3);
+
+      // Low thud
+      const buf = ac.createBuffer(1, ac.sampleRate * 0.1, ac.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
+      const noise = ac.createBufferSource();
+      noise.buffer = buf;
+      const ng = ac.createGain();
+      ng.gain.setValueAtTime(0.08, t);
+      ng.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      const lp = ac.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 400;
+      noise.connect(lp); lp.connect(ng); ng.connect(ac.destination);
+      noise.start(t); noise.stop(t + 0.1);
+    }
+
+    // Victory — gothic bell toll sequence
+    function soundWin() {
+      const ac = getCtx();
+      const notes = [523, 659, 784, 1046];
+      notes.forEach((freq, i) => {
+        const t = ac.currentTime + i * 0.18;
+        const osc = ac.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+
+        const osc2 = ac.createOscillator();
+        osc2.type = 'triangle';
+        osc2.frequency.value = freq * 2.76; // inharmonic partial for bell
+
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0.22, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+
+        const g2 = ac.createGain();
+        g2.gain.setValueAtTime(0.06, t);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+
+        const reverb = ac.createConvolver();
+        reverb.buffer = makeImpulse(ac, 1.5, 3);
+
+        osc.connect(g); osc2.connect(g2);
+        g.connect(reverb); g2.connect(reverb);
+        reverb.connect(ac.destination);
+        g.connect(ac.destination);
+
+        osc.start(t); osc.stop(t + 1.2);
+        osc2.start(t); osc2.stop(t + 0.6);
+      });
+    }
+
+    // Defeat — descending dark toll
+    function soundLose() {
+      const ac = getCtx();
+      const notes = [392, 330, 262, 196];
+      notes.forEach((freq, i) => {
+        const t = ac.currentTime + i * 0.22;
+        const osc = ac.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0.2, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 1.4);
+
+        const reverb = ac.createConvolver();
+        reverb.buffer = makeImpulse(ac, 2, 4);
+        osc.connect(g); g.connect(reverb); reverb.connect(ac.destination);
+        g.connect(ac.destination);
+        osc.start(t); osc.stop(t + 1.5);
+      });
+    }
+
+    // Draw — hollow single toll
+    function soundDraw() {
+      const ac = getCtx();
+      const t = ac.currentTime;
+      const osc = ac.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(330, t);
+      osc.frequency.exponentialRampToValueAtTime(280, t + 1.0);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.18, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 1.8);
+      const reverb = ac.createConvolver();
+      reverb.buffer = makeImpulse(ac, 2, 3);
+      osc.connect(g); g.connect(reverb); reverb.connect(ac.destination);
+      g.connect(ac.destination);
+      osc.start(t); osc.stop(t + 2);
+    }
+
+    // Hover tick — subtle chain clink
+    function soundHover() {
+      const ac = getCtx();
+      const t = ac.currentTime;
+      const buf = ac.createBuffer(1, ac.sampleRate * 0.05, ac.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
+      const noise = ac.createBufferSource();
+      noise.buffer = buf;
+      const bp = ac.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 5000;
+      bp.Q.value = 8;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.04, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      noise.connect(bp); bp.connect(g); g.connect(ac.destination);
+      noise.start(t); noise.stop(t + 0.05);
+    }
+
+    // Button click — leather thump
+    function soundButton() {
+      const ac = getCtx();
+      const t = ac.currentTime;
+      const osc = ac.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(120, t);
+      osc.frequency.exponentialRampToValueAtTime(60, t + 0.08);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.25, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      osc.connect(g); g.connect(ac.destination);
+      osc.start(t); osc.stop(t + 0.12);
+    }
+
+    function makeDistortionCurve(amount) {
+      const n = 256, curve = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        const x = (i * 2) / n - 1;
+        curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x));
+      }
+      return curve;
+    }
+
+    function makeImpulse(ac, duration, decay) {
+      const len = ac.sampleRate * duration;
+      const buf = ac.createBuffer(2, len, ac.sampleRate);
+      for (let c = 0; c < 2; c++) {
+        const d = buf.getChannelData(c);
+        for (let i = 0; i < len; i++)
+          d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+      }
+      return buf;
+    }
+
+    // ─── Game Logic ──────────────────────────────────────────────────────────
+    const WINS = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+
+    let board, gameOver, difficulty;
+    let scores = { X: 0, O: 0, D: 0 };
+    const difficulties = ['Easy', 'Medium', 'Hard'];
+    let diffIndex = 2;
+
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+    const modeBtn = document.getElementById('modeBtn');
+
+    // X shown as cross symbol, O as ring
+    const symbols = { X: '✝', O: '◯' };
+
+    function init() {
+      board = Array(9).fill('');
+      gameOver = false;
+      difficulty = difficulties[diffIndex];
+      statusEl.textContent = 'Your Turn \u00a0✝';
+      renderBoard();
+    }
+
+    function renderBoard() {
+      boardEl.innerHTML = '';
+      board.forEach((val, i) => {
+        const cell = document.createElement('div');
+        cell.className = 'cell' + (val ? ' taken ' + val.toLowerCase() : '');
+        if (val) cell.textContent = symbols[val];
+        cell.addEventListener('click', () => playerMove(i));
+        cell.addEventListener('mouseenter', () => {
+          if (!gameOver && !board[i]) soundHover();
+        });
+        boardEl.appendChild(cell);
+      });
+    }
+
+    function highlightWin(combo) {
+      const cells = boardEl.querySelectorAll('.cell');
+      combo.forEach(i => cells[i].classList.add('win'));
+    }
+
+    function checkWinner(b) {
+      for (const [a, c, d] of WINS) {
+        if (b[a] && b[a] === b[c] && b[a] === b[d]) return { winner: b[a], combo: [a, c, d] };
+      }
+      if (b.every(v => v)) return { winner: 'draw' };
+      return null;
+    }
+
+    function playerMove(i) {
+      if (gameOver || board[i]) return;
+      board[i] = 'X';
+      soundPlace();
+      renderBoard();
+      animateCell(i);
+      const result = checkWinner(board);
+      if (result) return endGame(result);
+      statusEl.textContent = 'NPC Thinking\u00a0…';
+      setTimeout(npcMove, 500);
+    }
+
+    function npcMove() {
+      if (gameOver) return;
+      let move;
+      if (difficulty === 'Hard') {
+        move = minimax(board, 'O').index;
+      } else if (difficulty === 'Medium') {
+        move = Math.random() < 0.6 ? minimax(board, 'O').index : randomMove();
+      } else {
+        move = randomMove();
+      }
+      board[move] = 'O';
+      soundNPC();
+      renderBoard();
+      animateCell(move);
+      const result = checkWinner(board);
+      if (result) return endGame(result);
+      statusEl.textContent = 'Your Turn \u00a0✝';
+    }
+
+    function animateCell(i) {
+      const cells = boardEl.querySelectorAll('.cell');
+      cells[i].classList.add('place-anim');
+    }
+
+    function randomMove() {
+      const empty = board.map((v, i) => v ? null : i).filter(v => v !== null);
+      return empty[Math.floor(Math.random() * empty.length)];
+    }
+
+    function minimax(b, player, depth = 0) {
+      const result = checkWinner(b);
+      if (result) {
+        if (result.winner === 'O') return { score: 10 - depth };
+        if (result.winner === 'X') return { score: depth - 10 };
+        return { score: 0 };
+      }
+      const empty = b.map((v, i) => v ? null : i).filter(v => v !== null);
+      const moves = empty.map(i => {
+        b[i] = player;
+        const score = minimax(b, player === 'O' ? 'X' : 'O', depth + 1).score;
+        b[i] = '';
+        return { index: i, score };
+      });
+      return moves.reduce((best, m) =>
+        player === 'O' ? (m.score > best.score ? m : best) : (m.score < best.score ? m : best)
+      );
+    }
+
+    function endGame({ winner, combo }) {
+      gameOver = true;
+      if (winner === 'draw') {
+        statusEl.textContent = '— Draw —';
+        soundDraw();
+        scores.D++;
+        document.getElementById('scoreDraw').textContent = scores.D;
+      } else if (winner === 'X') {
+        statusEl.textContent = '✝ &nbsp;Victory';
+        statusEl.innerHTML = '✝ &nbsp; Victory';
+        soundWin();
+        scores.X++;
+        document.getElementById('scoreX').textContent = scores.X;
+        highlightWin(combo);
+      } else {
+        statusEl.innerHTML = '☽ &nbsp; Defeated';
+        soundLose();
+        scores.O++;
+        document.getElementById('scoreO').textContent = scores.O;
+        highlightWin(combo);
+      }
+    }
+
+    document.getElementById('restartBtn').addEventListener('click', () => {
+      soundButton();
+      init();
+    });
+
+    modeBtn.addEventListener('click', () => {
+      soundButton();
+      diffIndex = (diffIndex + 1) % difficulties.length;
+      modeBtn.textContent = 'NPC : ' + difficulties[diffIndex];
+      init();
+    });
+
+    init();
+  </script>
+</body>
+</html>

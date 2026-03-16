@@ -113,6 +113,14 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .mem-turn{font-size:.75rem;letter-spacing:4px;text-transform:uppercase;color:#666;margin-top:14px;}
 
 /* ══════════════════════════════
+   SNAKE
+══════════════════════════════ */
+#snake-canvas{display:block;touch-action:none;}
+.snake-dpad{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:4px;margin-top:12px;}
+.dpad-btn{border:1px solid #333;background:linear-gradient(145deg,#141414,#0d0d0d);color:#888;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:'Cinzel',serif;}
+.dpad-btn:active{background:#1a1a1a;color:#ccc;border-color:#666;}
+
+/* ══════════════════════════════
    SHARED ANIMATIONS
 ══════════════════════════════ */
 @keyframes silverPulse{0%,100%{transform:scale(1);}40%{transform:scale(1.1);box-shadow:0 0 20px rgba(192,192,192,.4);}}
@@ -147,6 +155,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     <div class="game-card" onclick="launch('rps')"><span class="gc-icon">☽</span><span class="gc-name">Rock Paper Scissors</span></div>
     <div class="game-card" onclick="launch('bj')"><span class="gc-icon">♠</span><span class="gc-name">Blackjack</span></div>
     <div class="game-card" onclick="launch('mem')"><span class="gc-icon">⚜</span><span class="gc-name">Memory Match</span></div>
+    <div class="game-card" onclick="launch('snake')"><span class="gc-icon">◇</span><span class="gc-name">Snake</span></div>
   </div>
   <div style="margin-top:28px;font-size:.6rem;letter-spacing:5px;color:#2a2a2a;text-transform:uppercase;">✝ &nbsp; Hollywood, CA &nbsp; ✝</div>
 </div>
@@ -258,6 +267,30 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
   </div>
 </div>
 
+<!-- ══ SNAKE ══ -->
+<div id="snake" class="screen">
+  <button class="back-btn" onclick="goMenu()">✝ Menu</button>
+  <div class="ch-header"><span class="ch-cross">✝</span><span class="ch-title">Snake</span><span class="ch-cross">✝</span></div>
+  <div class="ch-sub">Consume ✝ Grow</div>
+  <div class="divider"><div class="divider-line"></div><span class="divider-icon">⚜</span><div class="divider-line"></div></div>
+  <div id="snake-status" class="status-bar">Use arrow keys or WASD</div>
+  <canvas id="snake-canvas" width="420" height="420" style="border:1px solid #222;background:#0a0a0a;"></canvas>
+  <div class="snake-dpad">
+    <div></div><button class="dpad-btn" onclick="snakeDirBtn(0,-1)">▲</button><div></div>
+    <button class="dpad-btn" onclick="snakeDirBtn(-1,0)">◀</button>
+    <button class="dpad-btn" onclick="snakeDirBtn(0,1)">▼</button>
+    <button class="dpad-btn" onclick="snakeDirBtn(1,0)">▶</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn" onclick="snakeInit()">✝ &nbsp;Restart</button>
+    <button class="btn" id="snake-diff-btn" onclick="snakeCycleDiff()">Speed : Medium</button>
+  </div>
+  <div class="score-strip">
+    <div class="sb"><span class="sb-label">Score</span><span class="sb-val" id="snake-score">0</span></div>
+    <div class="sb"><span class="sb-label">Best</span><span class="sb-val" id="snake-best">0</span></div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════
 // AUDIO ENGINE
@@ -283,7 +316,7 @@ function sndMatch(){const a=ac();[600,900].forEach((f,i)=>{const t=a.currentTime
 // ═══════════════════════════════════════
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function goMenu(){sndBtn();showScreen('menu');}
-function launch(id){sndBtn();showScreen(id);if(id==='ttt')tttInit();else if(id==='c4')c4Init();else if(id==='rps')rpsInit();else if(id==='bj')bjInit();else if(id==='mem')memInit();}
+function launch(id){sndBtn();showScreen(id);if(id==='ttt')tttInit();else if(id==='c4')c4Init();else if(id==='rps')rpsInit();else if(id==='bj')bjInit();else if(id==='mem')memInit();else if(id==='snake')snakeInit();}
 
 // ═══════════════════════════════════════
 // TIC TAC TOE
@@ -408,6 +441,82 @@ function memNPCTurn(){if(memTurn!=='npc')return;memLocked=true;const diff=memDif
   setTimeout(()=>{if(!memCards[pick2]){memLocked=false;return;}memCards[pick2].flipped=true;memMemory[pick2]=memCards[pick2].sym;memFlipped.push(pick2);memRender();memLocked=false;setTimeout(memCheck,700);},700);}
 function memEndGame(){const p=memPairs,n=memNPCPairs;if(p>n){document.getElementById('mem-status').innerHTML='✝ &nbsp; You Win!';sndWin();}else if(n>p){document.getElementById('mem-status').innerHTML='☽ &nbsp; NPC Wins';sndLose();}else{document.getElementById('mem-status').textContent='— Draw —';sndDraw();}}
 function memCycleDiff(){sndBtn();memDiffIdx=(memDiffIdx+1)%memDiffs.length;document.getElementById('mem-diff-btn').textContent='NPC : '+memDiffs[memDiffIdx];memInit();}
+
+// ═══════════════════════════════════════
+// SNAKE
+// ═══════════════════════════════════════
+const SN_CELL=20,SN_COLS=21,SN_ROWS=21;
+const snakeDiffs=['Slow','Medium','Fast'];
+const snakeSpeeds=[200,120,65];
+let snakeDiffIdx=1,snakeBest=0;
+let snakeBody,snakeDir,snakeNext,snakeFood,snakeScore,snakeAlive,snakeTimer;
+
+function snakeInit(){
+  clearInterval(snakeTimer);
+  snakeBody=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+  snakeDir={x:1,y:0};snakeNext={x:1,y:0};
+  snakeScore=0;snakeAlive=true;
+  document.getElementById('snake-score').textContent=0;
+  document.getElementById('snake-status').textContent='Use arrow keys or WASD';
+  snakeSpawnFood();snakeDraw();
+  snakeTimer=setInterval(snakeTick,snakeSpeeds[snakeDiffIdx]);
+}
+function snakeSpawnFood(){
+  let p;
+  do{p={x:Math.floor(Math.random()*SN_COLS),y:Math.floor(Math.random()*SN_ROWS)};}
+  while(snakeBody.some(s=>s.x===p.x&&s.y===p.y));
+  snakeFood=p;
+}
+function snakeTick(){
+  if(!snakeAlive)return;
+  snakeDir=snakeNext;
+  const h={x:snakeBody[0].x+snakeDir.x,y:snakeBody[0].y+snakeDir.y};
+  if(h.x<0||h.x>=SN_COLS||h.y<0||h.y>=SN_ROWS||snakeBody.some(s=>s.x===h.x&&s.y===h.y)){
+    snakeAlive=false;clearInterval(snakeTimer);sndLose();
+    document.getElementById('snake-status').innerHTML='☽ &nbsp; Game Over';
+    snakeDraw();return;
+  }
+  snakeBody.unshift(h);
+  if(h.x===snakeFood.x&&h.y===snakeFood.y){
+    snakeScore++;document.getElementById('snake-score').textContent=snakeScore;
+    if(snakeScore>snakeBest){snakeBest=snakeScore;document.getElementById('snake-best').textContent=snakeBest;}
+    sndMatch();snakeSpawnFood();
+  }else{snakeBody.pop();}
+  snakeDraw();
+}
+function snakeDraw(){
+  const cv=document.getElementById('snake-canvas'),ctx=cv.getContext('2d'),C=SN_CELL;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  // subtle grid dots
+  ctx.fillStyle='rgba(255,255,255,0.025)';
+  for(let x=0;x<SN_COLS;x++)for(let y=0;y<SN_ROWS;y++)ctx.fillRect(x*C+C/2-1,y*C+C/2-1,2,2);
+  // food as ✝
+  ctx.font=`${C+2}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.shadowColor='rgba(192,192,192,0.9)';ctx.shadowBlur=10;
+  ctx.fillStyle='#d4d4d4';
+  ctx.fillText('✝',snakeFood.x*C+C/2,snakeFood.y*C+C/2+1);
+  ctx.shadowBlur=0;
+  // snake body
+  snakeBody.forEach((seg,i)=>{
+    const t=1-i/Math.max(snakeBody.length,1)*0.65;
+    ctx.fillStyle=i===0?'#e2e2e2':`rgba(160,160,160,${Math.max(0.28,t)})`;
+    ctx.fillRect(seg.x*C+2,seg.y*C+2,C-4,C-4);
+    if(i===0){ctx.strokeStyle='rgba(200,200,200,0.5)';ctx.lineWidth=1;ctx.strokeRect(seg.x*C+2,seg.y*C+2,C-4,C-4);}
+  });
+  // game-over dim overlay
+  if(!snakeAlive){ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(0,0,cv.width,cv.height);}
+}
+function snakeDirBtn(x,y){if(!snakeAlive)return;if(x===-snakeDir.x&&y===-snakeDir.y)return;snakeNext={x,y};}
+function snakeCycleDiff(){sndBtn();snakeDiffIdx=(snakeDiffIdx+1)%snakeDiffs.length;document.getElementById('snake-diff-btn').textContent='Speed : '+snakeDiffs[snakeDiffIdx];snakeInit();}
+
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('snake').classList.contains('active'))return;
+  const map={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},w:{x:0,y:-1},s:{x:0,y:1},a:{x:-1,y:0},d:{x:1,y:0}};
+  const d=map[e.key];if(!d)return;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();
+  if(d.x===-snakeDir.x&&d.y===-snakeDir.y)return;
+  snakeNext=d;
+});
 </script>
 </body>
 </html>
